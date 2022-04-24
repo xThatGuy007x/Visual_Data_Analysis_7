@@ -1,0 +1,87 @@
+-- How can you isolate (or group) the transactions of each cardholder?
+SELECT ch.name, cc.card, t.date, t.amount, m.name AS merchant,
+	mc.name as category
+FROM transaction as t
+JOIN credit_card AS cc ON cc.card = t.card
+JOIN card_holder AS ch ON ch.id = cc.cardholder_id
+JOIN merchant AS m ON m.id = t.id_merchant
+JOIN merchant_category AS mc ON mc.id = m.id_merchant_category
+ORDER BY ch.name;
+
+--Count the transactions that are less than $2.00 per cardholder. 
+--Is there any evidence to suggest that a credit card has been hacked? Explain your rationale.
+SELECT COUNT(t.amount) AS "Transactions < $2.00"
+FROM transaction AS t
+WHERE t.amount < 2;
+
+SELECT *
+FROM transaction as t
+WHERE t.amount < 2
+ORDER BY t.card, t.amount DESC;
+
+--What are the top 100 highest transactions made between 7:00 am and 9:00 am?
+SELECT *
+FROM transaction as t
+WHERE date_part('hour', t.date) >= 7 AND date_part('hour', t.date) <= 9
+ORDER BY amount DESC
+LIMIT 100;
+
+--Is there a higher number of fraudulent transactions made during this time frame versus the rest of the day?
+SELECT COUNT(t.amount) AS "Transactions 7-9 of < $2.00"
+FROM transaction as t
+WHERE t.amount < 2
+AND date_part('hour', t.date) >= 7 AND date_part('hour', t.date) <= 9;
+
+--What are the top 5 merchants prone to being hacked using small transactions?
+SELECT COUNT(t.amount) AS small_transactions, m.name as merchant, mc.name AS category
+FROM transaction AS t
+JOIN merchant as m ON m.id = t.id_merchant
+JOIN merchant_category AS mc ON mc.id = m.id_merchant_category
+WHERE t.amount < 2
+GROUP BY m.name, mc.name
+ORDER BY small_transactions DESC
+LIMIT 5;
+
+--Views
+CREATE VIEW transactions_per_holder AS
+	SELECT ch.name, cc.card, t.date, t.amount, m.name AS merchant,
+	mc.name as category
+	FROM transaction as t
+	JOIN credit_card AS cc ON cc.card = t.card
+	JOIN card_holder AS ch ON ch.id = cc.cardholder_id
+	JOIN merchant AS m ON m.id = t.id_merchant
+	JOIN merchant_category AS mc ON mc.id = m.id_merchant_category
+	ORDER BY ch.name;
+	
+CREATE VIEW transactions_less_than_$2 AS
+	SELECT COUNT(t.amount) AS "Transactions < $2.00"
+	FROM transaction AS t
+	WHERE t.amount < 2;
+
+	SELECT *
+	FROM transaction as t
+	WHERE t.amount < 2
+	ORDER BY t.card, t.amount DESC;
+	
+CREATE VIEW top_100_transactions_7am_to_9am AS
+	SELECT *
+	FROM transaction as t
+	WHERE date_part('hour', t.date) >= 7 AND date_part('hour', t.date) <= 9
+	ORDER BY amount DESC
+	LIMIT 100;
+	
+CREATE VIEW fradulent_transactions_timeframe AS
+	SELECT COUNT(t.amount) AS "Transactions 7-9 of < $2.00"
+	FROM transaction as t
+	WHERE t.amount < 2
+	AND date_part('hour', t.date) >= 7 AND date_part('hour', t.date) <= 9;
+
+CREATE VIEW top_5_merchants_hacked AS
+	SELECT COUNT(t.amount) AS small_transactions, m.name as merchant, mc.name AS category
+	FROM transaction AS t
+	JOIN merchant as m ON m.id = t.id_merchant
+	JOIN merchant_category AS mc ON mc.id = m.id_merchant_category
+	WHERE t.amount < 2
+	GROUP BY m.name, mc.name
+	ORDER BY small_transactions DESC
+	LIMIT 5;
